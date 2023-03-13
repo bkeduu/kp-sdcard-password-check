@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2023 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+******************************************************************************
+* @file           : main.c
+* @brief          : Main program body
+******************************************************************************
+* @attention
+*
+* Copyright (c) 2023 STMicroelectronics.
+* All rights reserved.
+*
+* This software is licensed under terms that can be found in the LICENSE file
+* in the root directory of this software component.
+* If no LICENSE file comes with this software, it is provided AS-IS.
+*
+******************************************************************************
+*/
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -32,10 +32,20 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-FATFS fs;
-FIL fil;
 char password[] = "thebestpasswordintheworld";
-GPIO_InitTypeDef LED_GPIO_Init_struct = {LD2_Pin, GPIO_MODE_OUTPUT_PP, GPIO_NOPULL, GPIO_SPEED_FREQ_LOW};
+
+const char* messages[MESSAGES_SIZE] = {
+		"Password checker by Bardik Eduard v0.1\r\n",
+		"Error mounting microSD-card\r\n",
+		"Error reading file from microSD-card\r\n",
+		"Checking password...\r\n",
+		"Password is correct!\r\n",
+		"Password is incorrect!\r\n",
+		"To check new password, reset the device\r\n",
+};
+
+FATFS fs;
+FIL file;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -82,7 +92,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  HAL_GPIO_Init(GPIOA, &LED_GPIO_Init_struct);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -99,53 +108,46 @@ int main(void)
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 
+	indicate(INITIALIZATION);
+
 	FRESULT mount_res = f_mount(&fs, "", 0);
 
 	if (mount_res != FR_OK) {
-		// light another LED and write to UART that something went wrong
-		HAL_UART_Transmit(&huart2, (uint8_t*) "microSD-card wasn't mounted!\n", sizeof("microSD-card wasn't mounted!\n"), 10);
-		return 1;
+		indicate(MOUNT_ERROR);
 	}
 
-	FRESULT open_result = f_open(&fil, "password.txt", FA_READ | FA_OPEN_EXISTING);
+	FRESULT open_result = f_open(&file, "password.txt", FA_READ | FA_OPEN_EXISTING);
 
 	if (open_result != FR_OK) {
-		// light another LED and write to UART that something went wrong
-		HAL_UART_Transmit(&huart2, (uint8_t*) "File wasn't opened!\n", sizeof("File wasn't opened!\n"), 10);
-		return 1;
+		indicate(READ_ERROR);
 	}
+
+	indicate(READ_START);
 
 	char scan_buffer[sizeof(password)] = {0};
-	f_gets(scan_buffer, sizeof(password), &fil);
+	f_gets(scan_buffer, sizeof(password), &file);
 
 	if (strcmp(password, scan_buffer) == 0) {
-		HAL_UART_Transmit(&huart2, (uint8_t*) "Password is correct!\n", sizeof("Password is correct!\n"), 10);
-		HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_SET);
+		indicate(CORRECT_PASSWORD);
 	}
 	else {
-		HAL_UART_Transmit(&huart2, (uint8_t*) "Password is incorrect!\n", sizeof("Password is incorrect!\n"), 10);
-		GPIO_PinState current_state = GPIO_PIN_RESET;
-		while (1) {
-			HAL_GPIO_WritePin(GPIOA, LD2_Pin, current_state);
-			current_state = (current_state == GPIO_PIN_RESET) ? GPIO_PIN_SET : GPIO_PIN_RESET;
-			HAL_Delay(100);
-		}
+		indicate(INCORRECT_PASSWORD);
 	}
 
-	// HAL_GPIO_WritePin(GPIOA, LD2_Pin, GPIO_PIN_RESET);
-	f_close(&fil);
+	indicate(FINISH);
+	f_close(&file);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+	while (1)
+	{
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+	}
   /* USER CODE END 3 */
 }
 
@@ -274,7 +276,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|LD2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4|Green_LED_Output_Pin|Red_LED_Output_Pin|Blue_LED_Output_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -282,19 +284,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  /*Configure GPIO pins : PA4 Blue_LED_Output_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_4|Blue_LED_Output_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LD2_Pin */
-  GPIO_InitStruct.Pin = LD2_Pin;
+  /*Configure GPIO pins : Green_LED_Output_Pin Red_LED_Output_Pin */
+  GPIO_InitStruct.Pin = Green_LED_Output_Pin|Red_LED_Output_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
@@ -303,6 +305,57 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+// function that outputs information about device working
+void indicate(int message_type) {
+
+	if (message_type < (int) MESSAGES_SIZE)
+		HAL_UART_Transmit(&huart2, (uint8_t*) messages[message_type], strlen(messages[message_type]) + 1, 10);
+
+	switch (message_type) {
+	case INITIALIZATION: {
+		HAL_GPIO_WritePin(Blue_LED_Output_GPIO_Port, Blue_LED_Output_Pin, 1);
+		break;
+	}
+	case MOUNT_ERROR: {
+		indicate(FINISH);
+		GPIO_PinState current_state = GPIO_PIN_RESET;
+		while (1) {
+			HAL_GPIO_WritePin(Blue_LED_Output_GPIO_Port, Blue_LED_Output_Pin, current_state);
+			current_state = (current_state == GPIO_PIN_RESET) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+			HAL_Delay(100);
+		}
+		break;
+	}
+	case READ_ERROR: {
+		indicate(FINISH);
+		GPIO_PinState current_state = GPIO_PIN_RESET;
+		while (1) {
+			HAL_GPIO_WritePin(Blue_LED_Output_GPIO_Port, Blue_LED_Output_Pin, current_state);
+			current_state = (current_state == GPIO_PIN_RESET) ? GPIO_PIN_SET : GPIO_PIN_RESET;
+			HAL_Delay(100);
+		}
+		break;
+	}
+	case READ_START: {
+		break;
+	}
+	case CORRECT_PASSWORD: {
+		HAL_GPIO_WritePin(Green_LED_Output_GPIO_Port, Green_LED_Output_Pin, 1);
+		break;
+	}
+	case INCORRECT_PASSWORD: {
+		HAL_GPIO_WritePin(Red_LED_Output_GPIO_Port, Red_LED_Output_Pin, 1);
+		break;
+	}
+	case FINISH: {
+		break;
+	}
+	default: {
+		return;
+	}
+	}
+}
 
 /* USER CODE END 4 */
 
@@ -313,11 +366,11 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1)
+	{
+	}
   /* USER CODE END Error_Handler_Debug */
 }
 
@@ -332,8 +385,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+/* User can add his own implementation to report the file name and line number,
+ ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

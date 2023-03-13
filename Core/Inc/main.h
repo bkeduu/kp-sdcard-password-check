@@ -42,6 +42,17 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 
+enum MessageType {
+	INITIALIZATION,
+	MOUNT_ERROR,
+	READ_ERROR,
+	READ_START,
+	CORRECT_PASSWORD,
+	INCORRECT_PASSWORD,
+	FINISH,
+	MESSAGES_SIZE
+};
+
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -53,7 +64,7 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void indicate(int);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -64,8 +75,12 @@ void Error_Handler(void);
 #define USART_TX_GPIO_Port GPIOA
 #define USART_RX_Pin GPIO_PIN_3
 #define USART_RX_GPIO_Port GPIOA
-#define LD2_Pin GPIO_PIN_5
-#define LD2_GPIO_Port GPIOA
+#define Green_LED_Output_Pin GPIO_PIN_5
+#define Green_LED_Output_GPIO_Port GPIOA
+#define Red_LED_Output_Pin GPIO_PIN_6
+#define Red_LED_Output_GPIO_Port GPIOA
+#define Blue_LED_Output_Pin GPIO_PIN_7
+#define Blue_LED_Output_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
